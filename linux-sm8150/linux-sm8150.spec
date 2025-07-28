@@ -1,67 +1,94 @@
-Name: linux-sm8150
-ExclusiveArch: aarch64
-Version: 6.14
-Release: 6
-Summary: AIO package for linux kernel, modules and headers for sm8150 devices.
-URL: https://gitlab.com/sm8150-mainline/linux
-Source1: %{url}/-/archive/sm8150/%{version}/linux-sm8150-%{version}.tar.gz
-License: GPL
+%undefine        _debugsource_packages
+%global tag      6.14
+Version:         6.14.0
+Release:         0.sm8150%{?dist}
+ExclusiveArch:   aarch64
+Name:            kernel
+Summary:         linux-sm8150 kernel
+License:         GPLv2
+URL:             https://gitlab.com/sm8150-mainline/linux
+Source0:         %{url}/-/archive/sm8150/%{tag}/linux-sm8150-%{tag}.tar.gz
 
-Provides: kernel = %{version}-%{release}
-Provides: kernel-core = %{version}-%{release}
-Provides: kernel-modules = %{version}-%{release}
-Provides: kernel-devel = %{version}-%{release}
-Provides: kernel-headers = %{version}-%{release}
+BuildRequires:   bc bison dwarves diffutils elfutils-devel findutils gcc gcc-c++ git-core hmaccalc hostname make openssl-devel perl-interpreter rsync tar which flex bzip2 xz zstd python3 python3-devel python3-pyyaml rust rust-src bindgen rustfmt clippy opencsd-devel net-tools
 
-BuildRequires: kmod, bash, coreutils, tar, git-core, which
-BuildRequires: bzip2, xz, findutils, m4, perl-interpreter, perl-Carp, perl-devel, perl-generators, make, diffutils, gawk
-BuildRequires: zstd
-BuildRequires: gcc, binutils, redhat-rpm-config, hmaccalc, bison, flex, gcc-c++
-BuildRequires: rust, rust-src, bindgen, rustfmt, clippy
-BuildRequires: net-tools, hostname, bc, elfutils-devel
-BuildRequires: dwarves
-BuildRequires: python3
-BuildRequires: python3-devel
-BuildRequires: python3-pyyaml
-BuildRequires: glibc-static
-BuildRequires: rsync
-BuildRequires: opencsd-devel >= 1.0.0
-BuildRequires: openssl-devel
+Provides:        kernel               = %{version}-%{release}
+Provides:        kernel-core          = %{version}-%{release}
+Provides:        kernel-modules       = %{version}-%{release}
+Provides:        kernel-devel         = %{version}-%{release}
+Provides:        kernel-headers       = %{version}-%{release}
+Requires:        kernel-modules       = %{version}-%{release}
+
+%global uname_r %{version}-%{release}.%{_target_cpu}
 
 %description
 Mainline kernel for sm8150 (qcom snapdragon 855/860) devices.
 
 %prep
-tar -xzf %{SOURCE1}
+%autosetup -n linux-sm8150-%{tag}
+
+make defconfig sm8150.config
 
 %build
-cd %{name}-%{version}
-make defconfig sm8150.config 
-cat >> .config << EOF
+sed -i '/^CONFIG_LOCALVERSION=/d' .config
+cat >> .config <<'EOF'
+CONFIG_LOCALVERSION=""
+CONFIG_LOCALVERSION_AUTO=n
 CONFIG_FW_LOADER_COMPRESS=y
 CONFIG_FW_LOADER_COMPRESS_XZ=y
 CONFIG_FW_LOADER_COMPRESS_ZSTD=y
 CONFIG_OF_RESOLVE=y
 CONFIG_OF_OVERLAY=y
 EOF
-make EXTRAVERSION="-%{release}" -j`nproc`
+rm -f localversion*
+
+make olddefconfig
+make EXTRAVERSION="-%{release}.%{_target_cpu}" LOCALVERSION= -j%{?_smp_build_ncpus} Image.gz modules dtbs
 
 %install
-cd %{name}-%{version}
-kernel_version=$(make EXTRAVERSION="-%{release}" kernelrelease)
+make EXTRAVERSION="-%{release}.%{_target_cpu}" LOCALVERSION= \
+     INSTALL_PATH=%{buildroot}/usr/lib/modules/%{uname_r} \
+     INSTALL_MOD_PATH=%{buildroot}/usr \
+     INSTALL_HDR_PATH=%{buildroot}/usr \
+     modules_install headers_install install
 
-mkdir -p %{buildroot}/boot/
-cp arch/arm64/boot/Image.gz %{buildroot}/boot/vmlinuz-$kernel_version
-cp System.map %{buildroot}/boot/System.map-$kernel_version
-cp .config %{buildroot}/boot/config-$kernel_version
-
-make EXTRAVERSION="-%{release}" modules_install INSTALL_MOD_PATH=%{buildroot}/usr
-make EXTRAVERSION="-%{release}" headers_install INSTALL_HDR_PATH=%{buildroot}/usr
-rm %{buildroot}/usr/lib/modules/%{version}*/build
+install -Dm644 System.map %{buildroot}/usr/lib/modules/%{uname_r}/System.map
+install -Dm644 .config    %{buildroot}/usr/lib/modules/%{uname_r}/config
+mkdir -p %{buildroot}/usr/lib/modules/%{uname_r}/dtb
+find arch/arm64/boot/dts -type f -name '*.dtb' -exec cp -a '{}' %{buildroot}/usr/lib/modules/%{uname_r}/dtb/ \;
+install -Dm644 arch/arm64/boot/Image %{buildroot}/usr/lib/modules/%{uname_r}/vmlinuz
+install -d %{buildroot}/boot
+ln -sr %{buildroot}/usr/lib/modules/%{uname_r}/vmlinuz %{buildroot}/boot/vmlinuz-%{uname_r}
+install -d %{buildroot}/usr/lib/ostree-boot
+ln -s ../modules/%{uname_r}/vmlinuz %{buildroot}/usr/lib/ostree-boot/vmlinuz-%{uname_r}
+ln -s ../modules/%{uname_r}/initramfs.img %{buildroot}/usr/lib/ostree-boot/initramfs-%{uname_r}.img
 
 %files
-/boot/System.map-%{version}*
-/boot/config-%{version}*
-/boot/vmlinuz-%{version}*
-/usr/lib/modules/%{version}*
+/boot/vmlinuz-%{uname_r}
 /usr/include
+/usr/lib/modules/%{uname_r}
+/usr/lib/ostree-boot/vmlinuz-%{uname_r}
+/usr/lib/ostree-boot/initramfs-%{uname_r}.img
+/boot/vmlinuz-%{uname_r}
+
+%posttrans
+set -e
+uname_r=%{uname_r}
+
+depmod -a "${uname_r}"
+
+dracut -v --force "/usr/lib/modules/${uname_r}/initramfs.img" "${uname_r}"
+
+ln -sf "../modules/${uname_r}/initramfs.img" "/usr/lib/ostree-boot/initramfs-${uname_r}.img"
+
+kernel-install add "${uname_r}" "/usr/lib/modules/${uname_r}/vmlinuz" "/usr/lib/modules/${uname_r}/initramfs.img"
+
+%postun
+if [ "$1" -eq 0 ] ; then
+    kernel-install remove %{uname_r}
+fi
+
+%changelog
+* Fri Jul 25 2025 gmanka 6.14-7
+- Adopt Fedora kernel‑core file layout
+- Generate initramfs + BLS in %posttrans so bootc images are bootable
+- Provide virtual ‘kernel*’ names to satisfy dependencies
