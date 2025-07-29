@@ -1,13 +1,14 @@
 %undefine        _debugsource_packages
 %global tag      6.14
 Version:         6.14.0
-Release:         0.sm8150%{?dist}
+Release:         1.sm8150%{?dist}
 ExclusiveArch:   aarch64
 Name:            kernel
 Summary:         linux-sm8150 kernel
 License:         GPLv2
 URL:             https://gitlab.com/sm8150-mainline/linux
 Source0:         %{url}/-/archive/sm8150/%{tag}/linux-sm8150-%{tag}.tar.gz
+Source1:         extra-sm8150.config
 
 BuildRequires:   bc bison dwarves diffutils elfutils-devel findutils gcc gcc-c++ git-core hmaccalc hostname make openssl-devel perl-interpreter rsync tar which flex bzip2 xz zstd python3 python3-devel python3-pyyaml rust rust-src bindgen rustfmt clippy opencsd-devel net-tools
 
@@ -30,15 +31,7 @@ make defconfig sm8150.config
 
 %build
 sed -i '/^CONFIG_LOCALVERSION=/d' .config
-cat >> .config <<'EOF'
-CONFIG_LOCALVERSION=""
-CONFIG_LOCALVERSION_AUTO=n
-CONFIG_FW_LOADER_COMPRESS=y
-CONFIG_FW_LOADER_COMPRESS_XZ=y
-CONFIG_FW_LOADER_COMPRESS_ZSTD=y
-CONFIG_OF_RESOLVE=y
-CONFIG_OF_OVERLAY=y
-EOF
+cat %{SOURCE1} >> .config
 rm -f localversion*
 
 make olddefconfig
