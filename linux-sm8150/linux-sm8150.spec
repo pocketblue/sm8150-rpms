@@ -1,7 +1,7 @@
 %undefine        _debugsource_packages
 %global tag      6.14
 Version:         6.14.0
-Release:         1.sm8150%{?dist}
+Release:         2.sm8150%{?dist}
 ExclusiveArch:   aarch64
 Name:            kernel
 Summary:         linux-sm8150 kernel
