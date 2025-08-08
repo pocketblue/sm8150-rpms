@@ -1,7 +1,7 @@
 %undefine        _debugsource_packages
-%global tag      6.14
-Version:         6.14.0
-Release:         3.sm8150%{?dist}
+%global tag      6.16
+Version:         6.16.0
+Release:         0.sm8150%{?dist}
 ExclusiveArch:   aarch64
 Name:            kernel
 Summary:         linux-sm8150 kernel
@@ -14,10 +14,10 @@ BuildRequires:   bc bison dwarves diffutils elfutils-devel findutils gcc gcc-c++
 
 Provides:        kernel               = %{version}-%{release}
 Provides:        kernel-core          = %{version}-%{release}
-Provides:        kernel-modules       = %{version}-%{release}
 Provides:        kernel-devel         = %{version}-%{release}
 Provides:        kernel-headers       = %{version}-%{release}
-Requires:        kernel-modules       = %{version}-%{release}
+Provides:        kernel-modules       = %{version}-%{release}
+Provides:        kernel-modules-core  = %{version}-%{release}
 
 %global uname_r %{version}-%{release}.%{_target_cpu}
 
@@ -46,8 +46,12 @@ make EXTRAVERSION="-%{release}.%{_target_cpu}" LOCALVERSION= \
 
 install -Dm644 System.map %{buildroot}/usr/lib/modules/%{uname_r}/System.map
 install -Dm644 .config    %{buildroot}/usr/lib/modules/%{uname_r}/config
-mkdir -p %{buildroot}/usr/lib/modules/%{uname_r}/dtb
-find arch/arm64/boot/dts -type f -name '*.dtb' -exec cp -a '{}' %{buildroot}/usr/lib/modules/%{uname_r}/dtb/ \;
+
+install -d %{buildroot}/usr/lib/modules/%{uname_r}/dtb/qcom
+install -Dm644 arch/arm64/boot/dts/qcom/sm8150-xiaomi-nabu.dtb %{buildroot}/usr/lib/modules/%{uname_r}/dtb/qcom/sm8150-xiaomi-nabu.dtb
+install -d %{buildroot}/usr/lib/kernel
+echo 'qcom/sm8150-xiaomi-nabu.dtb' > %{buildroot}/usr/lib/kernel/devicetree
+
 install -Dm644 arch/arm64/boot/Image %{buildroot}/usr/lib/modules/%{uname_r}/vmlinuz
 install -d %{buildroot}/boot
 ln -sr %{buildroot}/usr/lib/modules/%{uname_r}/vmlinuz %{buildroot}/boot/vmlinuz-%{uname_r}
@@ -61,7 +65,7 @@ ln -s ../modules/%{uname_r}/initramfs.img %{buildroot}/usr/lib/ostree-boot/initr
 /usr/lib/modules/%{uname_r}
 /usr/lib/ostree-boot/vmlinuz-%{uname_r}
 /usr/lib/ostree-boot/initramfs-%{uname_r}.img
-/boot/vmlinuz-%{uname_r}
+/usr/lib/kernel/devicetree
 
 %posttrans
 set -e
@@ -81,7 +85,5 @@ if [ "$1" -eq 0 ] ; then
 fi
 
 %changelog
-* Fri Jul 25 2025 gmanka 6.14-7
-- Adopt Fedora kernel‑core file layout
-- Generate initramfs + BLS in %posttrans so bootc images are bootable
-- Provide virtual ‘kernel*’ names to satisfy dependencies
+* Fri Jul 25 2025 gmanka 6.16.0
+- update to 6.16.0
