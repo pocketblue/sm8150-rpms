@@ -2,7 +2,7 @@
 %global soc      sm8150
 %global tag      6.16
 Version:         6.16.0
-Release:         5.sm8150%{?dist}
+Release:         6.%{soc}%{?dist}
 ExclusiveArch:   aarch64
 Name:            kernel
 Summary:         mainline kernel for %{soc}
@@ -10,6 +10,7 @@ License:         GPLv2
 URL:             https://gitlab.com/%{soc}-mainline/linux
 Source0:         %{url}/-/archive/%{soc}/%{tag}/linux-%{soc}-%{tag}.tar.gz
 Source1:         extra-%{soc}.config
+Patch0:          rotation.patch
 
 Provides:        kernel               = %{version}-%{release}
 Provides:        kernel-core          = %{version}-%{release}
@@ -26,7 +27,7 @@ BuildRequires:   bc bison dwarves diffutils elfutils-devel findutils gcc gcc-c++
 %{summary}
 
 %prep
-%autosetup -n linux-%{soc}-%{tag}
+%autosetup -n linux-%{soc}-%{tag} -p1
 make defconfig %{soc}.config
 
 %build
