@@ -1,13 +1,15 @@
 %undefine        _debugsource_packages
+%global soc      sm8150
 Version:         6.16.0
-Release:         3.rodriguezst.sm8150%{?dist}
+Release:         6.rodriguezst.%{soc}%{?dist}
 ExclusiveArch:   aarch64
 Name:            kernel
-Summary:         linux-sm8150 kernel
+Summary:         mainline kernel for %{soc}
 License:         GPLv2
 URL:             https://github.com/rodriguezst/linux
 Source0:         %{url}/archive/refs/heads/v%{version}-nabu.tar.gz
-Source1:         extra-sm8150.config
+Source1:         extra-%{soc}.config
+Patch0:          rotation.patch
 
 Provides:        kernel               = %{version}-%{release}
 Provides:        kernel-core          = %{version}-%{release}
@@ -21,12 +23,11 @@ BuildRequires:   bc bison dwarves diffutils elfutils-devel findutils gcc gcc-c++
 %global uname_r %{version}-%{release}.%{_target_cpu}
 
 %description
-Mainline kernel for sm8150 (qcom snapdragon 855/860) devices.
+%{summary}
 
 %prep
-%autosetup -n linux-%{version}-nabu
-
-make defconfig sm8150.config
+%autosetup -n linux-%{version}-nabu -p1
+make defconfig %{soc}.config
 
 %build
 sed -i '/^CONFIG_LOCALVERSION=/d' .config
@@ -36,7 +37,7 @@ make EXTRAVERSION="-%{release}.%{_target_cpu}" LOCALVERSION= -j%{?_smp_build_ncp
 
 %install
 make EXTRAVERSION="-%{release}.%{_target_cpu}" LOCALVERSION= INSTALL_MOD_PATH=%{buildroot}/usr INSTALL_HDR_PATH=%{buildroot}/usr modules_install headers_install
-install -Dm644 arch/arm64/boot/dts/qcom/sm8150-xiaomi-nabu.dtb %{buildroot}/usr/lib/modules/%{uname_r}/devicetree
+install -Dm644 arch/arm64/boot/dts/qcom/%{soc}-xiaomi-nabu.dtb %{buildroot}/usr/lib/modules/%{uname_r}/devicetree
 install -Dm644 arch/arm64/boot/Image %{buildroot}/usr/lib/modules/%{uname_r}/vmlinuz
 install -Dm644 System.map            %{buildroot}/usr/lib/modules/%{uname_r}/System.map
 install -Dm644 .config               %{buildroot}/usr/lib/modules/%{uname_r}/config
@@ -54,5 +55,4 @@ dracut /usr/lib/modules/%{uname_r}/initramfs.img %{uname_r}
 kernel-install add %{uname_r} /usr/lib/modules/%{uname_r}/vmlinuz /usr/lib/modules/%{uname_r}/initramfs.img
 
 %changelog
-* Sun Sep 28 2025 gmanka 6.16.0
-- refactor spec
+%autochangelog
