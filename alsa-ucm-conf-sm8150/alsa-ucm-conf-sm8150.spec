@@ -1,6 +1,6 @@
 Name:           alsa-ucm-conf-sm8150
 Version:        1
-Release:        1
+Release:        2
 Summary:        alsa and pipewire audio profile for mipad5
 License:        MIT
 BuildArch:      noarch
