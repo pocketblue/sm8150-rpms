@@ -2,7 +2,7 @@
 %global soc      sm8150
 %global tag      v6.17.0-sm8150
 Version:         6.17.0
-Release:         5.%{soc}%{?dist}
+Release:         6.%{soc}%{?dist}
 ExclusiveArch:   aarch64
 Name:            kernel
 Summary:         mainline kernel for %{soc}
@@ -10,7 +10,6 @@ License:         GPLv2
 URL:             https://gitlab.com/%{soc}-mainline/linux
 Source0:         %{url}/-/archive/%{tag}/linux-%{tag}.tar.gz
 Source1:         extra-%{soc}.config
-Patch0:          rotation.patch
 
 Provides:        kernel               = %{version}-%{release}
 Provides:        kernel-core          = %{version}-%{release}
