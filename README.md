@@ -1,1 +1,1 @@
-# nabu-fedora-support
+moved to https://github.com/pocketblue/packages
